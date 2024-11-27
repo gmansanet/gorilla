@@ -6,7 +6,7 @@ from logconf import log_setup
 import logging
 from typing import Literal, Any, get_args
 import argparse
-from openai import OpenAI, BadRequestError
+from openai import OpenAI, BadRequestError, RateLimitError
 import datasets
 from datasets import Dataset, concatenate_datasets
 import pyarrow as pa
@@ -104,7 +104,7 @@ def get_chunks(
         with tqdm(total=len(file_paths), desc="Chunking", unit="file") as pbar:
             with ThreadPoolExecutor(max_workers=2) as executor:
                 for file_path in file_paths:
-                    futures.append(executor.submit(get_doc_chunks, embeddings, file_path, doctype, chunk_size))
+                    futures.append(executor.submit(retry_get_doc_chunks, embeddings, file_path, doctype, chunk_size))
                 for future in as_completed(futures):
                     doc_chunks = future.result()
                     chunks.extend(doc_chunks)
@@ -112,6 +112,22 @@ def get_chunks(
                     pbar.update(1)
 
     return chunks
+
+def retry_get_doc_chunks(embeddings, file_path, doctype, chunk_size, retries=5, backoff_factor=1.0):
+    """
+    Wrapper function to retry get_doc_chunks with exponential backoff in case of rate limit errors.
+    """
+    for attempt in range(retries):
+        try:
+            return get_doc_chunks(embeddings, file_path, doctype, chunk_size)
+        except RateLimitError as e:
+            if attempt < retries - 1:
+                sleep_time = backoff_factor * (2 ** attempt)
+                logger.warning(f"Rate limit exceeded. Retrying in {sleep_time} seconds...")
+                time.sleep(sleep_time)
+            else:
+                logger.error("Max retries exceeded. Raising error.")
+                raise e
 
 def get_doc_chunks(
     embeddings: OpenAIEmbeddings,
