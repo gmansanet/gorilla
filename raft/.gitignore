@@ -1,2 +1,5 @@
-.venv/
 output/
+output-checkpoints/
+sample_data/
+.venv/
+.env
