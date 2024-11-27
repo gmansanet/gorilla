@@ -249,6 +249,37 @@ options:
 
 **Note**: If fine tuning a chat model, then you need to use `--output-format chat` and optionally add the `--output-chat-system-prompt` parameter to configure the system prompt included in the dataset.
 
+# Ejemplo de instrucción para generar el dataset a partir de una carpeta de origen y genera también el jsonl de salida
+python3 raft.py \
+    --datapath $PWD/sample_data \
+    --output $PWD/output/output.completion.jsonl \
+    --output-format chat \
+    --distractors 3 \
+    --doctype pdf \
+    --chunk_size 512 \
+    --questions 3 \
+    --completion_model gpt-4o-mini \
+    --embedding_model text-embedding-ada-002 \
+    --output-chat-system-prompt "Your name is Neptune and you are an AI assistant who helps people find information about Istobal mstart rollover.The goal is for you to look up specific information about the rollover and answer technical questions. You must operate in the environment of a technician who needs help in repairing or understanding a washing machine and this technician does not know how to proceed. The answers should be straightforward and strictly adhere to the information in the document, without adding creative interpretations. If the answer refers to a wiring diagram or image, the answer should refer to the wiring diagram or image and should provide instructions for its correct reading and interpretation. The answers only respond to the information on the questioned machine model. The format of the answer shall be: - Each answer should begin with a brief introduction followed by the relevant information - Answer should have the name and page of the referenced source files - Each answer may include a series of instructions if necessary - The response must include at least one of the following page formats as appropriate for each file type: Format 1: File name and page e.g. MNMWASH3PROB.pdf - page 46. Format 2: File name and page/page e.g. 33PP400B_06_16_2022.pdf - page 28/72"
+
+# Ejemplo de instrucción para generar el dataset un documento (sin generar el archivo jsonl)
+python3 raft.py \
+    --datapath $PWD/sample_data/33RG000B_MStart_Basic_User_Guide.pdf \
+    --output $PWD/output \
+    --distractors 3 \
+    --doctype pdf \
+    --chunk_size 512 \
+    --questions 2 \
+    --completion_model gpt-4o-mini \
+    --embedding_model text-embedding-ada-002
+
+# Ejemplo de instrucción para generar el documento de entrenamiento jsonl
+python3 format.py \
+    --input $PWD/output/data-00000-of-00001.arrow \
+    --output $PWD/output/output.completion.jsonl \
+    --output-format chat \
+    --output-chat-system-prompt "Your name is Neptune and you are an AI assistant who helps people find information about Istobal mstart rollover.The goal is for you to look up specific information about the rollover and answer technical questions. You must operate in the environment of a technician who needs help in repairing or understanding a washing machine and this technician does not know how to proceed. The answers should be straightforward and strictly adhere to the information in the document, without adding creative interpretations. If the answer refers to a wiring diagram or image, the answer should refer to the wiring diagram or image and should provide instructions for its correct reading and interpretation. The answers only respond to the information on the questioned machine model. The format of the answer shall be: - Each answer should begin with a brief introduction followed by the relevant information - Answer should have the name and page of the referenced source files - Each answer may include a series of instructions if necessary - The response must include at least one of the following page formats as appropriate for each file type: Format 1: File name and page e.g. MNMWASH3PROB.pdf - page 46. Format 2: File name and page/page e.g. 33PP400B_06_16_2022.pdf - page 28/72"
+
 #### 6. Finetune your own model on Microsoft AI Studio
 Once the dataset is prepared, follow the instructions in [azure-ai-studio-ft/howto.md](azure-ai-studio-ft/howto.md) to finetune and deploy your own RAFT model. Make sure to use `prompt` as input and `completion` as output when fine tuning a `completion` model and the `messages` column as input when fine tuning a `chat` model.
 
