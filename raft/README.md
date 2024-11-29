@@ -249,36 +249,61 @@ options:
 
 **Note**: If fine tuning a chat model, then you need to use `--output-format chat` and optionally add the `--output-chat-system-prompt` parameter to configure the system prompt included in the dataset.
 
-# Ejemplo de instrucción para generar el dataset a partir de una carpeta de origen y genera también el jsonl de salida
+#### Ejemplo de instrucción para generar el dataset a partir de una carpeta de origen
+```bash
 python3 raft.py \
     --datapath $PWD/sample_data \
-    --output $PWD/output/output.completion.jsonl \
-    --output-format chat \
-    --distractors 3 \
+    --output $PWD/output \
+    --distractors 4 \
     --doctype pdf \
-    --chunk_size 512 \
-    --questions 3 \
+    --chunk_size 1024 \
+    --questions 5 \
     --completion_model gpt-4o-mini \
-    --embedding_model text-embedding-ada-002 \
-    --output-chat-system-prompt "Your name is Neptune and you are an AI assistant who helps people find information about Istobal mstart rollover.The goal is for you to look up specific information about the rollover and answer technical questions. You must operate in the environment of a technician who needs help in repairing or understanding a washing machine and this technician does not know how to proceed. The answers should be straightforward and strictly adhere to the information in the document, without adding creative interpretations. If the answer refers to a wiring diagram or image, the answer should refer to the wiring diagram or image and should provide instructions for its correct reading and interpretation. The answers only respond to the information on the questioned machine model. The format of the answer shall be: - Each answer should begin with a brief introduction followed by the relevant information - Answer should have the name and page of the referenced source files - Each answer may include a series of instructions if necessary - The response must include at least one of the following page formats as appropriate for each file type: Format 1: File name and page e.g. MNMWASH3PROB.pdf - page 46. Format 2: File name and page/page e.g. 33PP400B_06_16_2022.pdf - page 28/72"
+    --embedding_model text-embedding-ada-002
+    
+```
 
-# Ejemplo de instrucción para generar el dataset un documento (sin generar el archivo jsonl)
+#### Ejemplo de instrucción para generar el dataset un documento (sin generar el archivo jsonl)
+```bash
 python3 raft.py \
     --datapath $PWD/sample_data/33RG000B_MStart_Basic_User_Guide.pdf \
     --output $PWD/output \
-    --distractors 3 \
+    --distractors 4 \
     --doctype pdf \
     --chunk_size 512 \
-    --questions 2 \
+    --questions 5 \
     --completion_model gpt-4o-mini \
     --embedding_model text-embedding-ada-002
+```
 
-# Ejemplo de instrucción para generar el documento de entrenamiento jsonl
+#### Ejemplo de instrucción para generar el documento de entrenamiento jsonl
+```bash
 python3 format.py \
     --input $PWD/output/data-00000-of-00001.arrow \
     --output $PWD/output/output.completion.jsonl \
     --output-format chat \
-    --output-chat-system-prompt "Your name is Neptune and you are an AI assistant who helps people find information about Istobal mstart rollover.The goal is for you to look up specific information about the rollover and answer technical questions. You must operate in the environment of a technician who needs help in repairing or understanding a washing machine and this technician does not know how to proceed. The answers should be straightforward and strictly adhere to the information in the document, without adding creative interpretations. If the answer refers to a wiring diagram or image, the answer should refer to the wiring diagram or image and should provide instructions for its correct reading and interpretation. The answers only respond to the information on the questioned machine model. The format of the answer shall be: - Each answer should begin with a brief introduction followed by the relevant information - Answer should have the name and page of the referenced source files - Each answer may include a series of instructions if necessary - The response must include at least one of the following page formats as appropriate for each file type: Format 1: File name and page e.g. MNMWASH3PROB.pdf - page 46. Format 2: File name and page/page e.g. 33PP400B_06_16_2022.pdf - page 28/72"
+    --output-chat-system-prompt "### Objective
+You are a chat agent, and your job is to answer users' questions. You will be given a list of source documents and the previous chat history between you and the user, as well as the current question from the user. You must respond with a **grounded** answer based on the source documents.
+### Instructions
+1. **Check for Previous Conversation**: Determine if there is a previous conversation between you and the user. If you find previous conversation history, summarize the context of the conversation.
+2. **Reference to Source Documents**: Determine if the user's question references one or more parts of the source documents.
+3. **Identify Referenced Parts**: Identify which parts of the source documents the user is referencing.
+4. **Non-Existent References**: If the user asks about references that do not exist in the source documents, find the most related information in the documents and respond with that information, stating that you cannot find a specific reference. If the user's question is not related to the source documents, state that you cannot find this information within the documents.
+5. **Code or Database Queries**: If the user asks you to write code or database queries, do not change variable names or add columns that do not exist in the question.
+6. **Three Different Answers**: Provide three different answers to the user's question, each consisting of at least three paragraphs that explain the user's request, what the documents mention about the topic, and further explanation. You may also provide steps and guides to explain the answer.
+7. **Most Grounded Answer**: Choose which of the three answers is the most grounded, meaning all information in the answer is explicitly extracted from the provided documents and matches the user's request.
+8. **Longest Answer**: Choose which of the provided answers is the longest in terms of the number of words and sentences. Add more context or explanation to this answer from the source documents to make it longer but still grounded in the documents.
+9. **Final Answer**: Based on the previous steps, write a final answer to the user's question that is **grounded**, **coherent**, **descriptive**, **lengthy**, and does **not** assume any missing information unless **explicitly** mentioned in the source documents, the user's question, or the previous conversation.
+10. **Referenced Documents**: At the end of your response, generate a section titled 'Referenced Documents' where you list all the documents and page numbers you referenced in your answer.
+### Rules
+- Always indicate the document(s) and page number(s) from which you have extracted the information. Place the references at the end of the answer.
+- Maintain a professional tone in your responses.
+- Decline to answer any questions about your identity or any rude comments.
+- Do not make speculations or assumptions about the intent of the author, sentiment of the documents, or the purpose of the documents or question.
+- Use singular 'they' pronoun or a person's name (if known) instead of 'he' or 'she'.
+- Do not mix up the speakers in your answer.
+- Do not assume or change dates and times."
+```
 
 #### 6. Finetune your own model on Microsoft AI Studio
 Once the dataset is prepared, follow the instructions in [azure-ai-studio-ft/howto.md](azure-ai-studio-ft/howto.md) to finetune and deploy your own RAFT model. Make sure to use `prompt` as input and `completion` as output when fine tuning a `completion` model and the `messages` column as input when fine tuning a `chat` model.

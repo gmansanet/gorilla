@@ -188,9 +188,16 @@ build_qa_messages = {
     "gpt": lambda chunk, x : [
             {"role": "system", "content": """You are a synthetic question-answer pair generator. Given a chunk of context about 
              some topic(s), generate %s example questions a user could ask and would be answered using information from the chunk. 
-             For example, if the given context was a Wikipedia paragraph about the United States, an example question could be 
-             'How many states are in the United States?'""" % (x)},
-            {"role": "system", "content": "The questions should be able to be answered in a few words or less. Include only the questions in your response."},
+             The user who would ask the questions is a technician who installs and maintains Istobal washing machines and needs to 
+             perform an installation, maintenance, or repair operations and does not know how to perform it. Additionally, 
+             the user may need to obtain information about procedures and detect elements in electrical schematics. 
+             For example, if the given context was a maintenance section or paragraph of Istobal washing machine basic user guide 
+             document, some example questions could be 'What is the recommendation for cleaning the water filters?', 'How can I identify 
+             the power supply in the electrical schematic?', 'How do I do a restore on a M'START?', 
+             'Which output controls the left vertical brush drive?', 'To which output is Q51 connected on the high pressure pump?' or 
+             'What is input I12.4 on the M'START?'""" % (x)},
+            {"role": "system", "content": """Questions should be answerable with a brief introduction followed by the relevant information 
+             including a set of instructions, if required. Include only the questions in your response."""},
             {"role": "user", "content": str(chunk)}
         ],
     "llama": lambda chunk, x : [
@@ -205,13 +212,13 @@ build_qa_messages = {
                 - Questions should be succinct
 
                 Here are some samples:
-                Context: A Wikipedia paragraph about the United States, 
-                Question: How many states are in the United States?
+                Context: A maintenance section or paragraph of Istobal washing machine basic user guide, 
+                Question: What is the recommendation for cleaning the water filters?
 
-                Context: A Wikipedia paragraph about vampire bats, 
-                Question: What are the different species of vampire bats?
+                Context: A start-up section or paragraph of Istobal washing machine basic user guide, 
+                Question: How to positioning by traffic light?
                 """ % (x)},
-            {"role": "system", "content": "The questions should be able to be answered in a few words or less. Include only the questions in your response."},
+            {"role": "system", "content": "Questions should be answerable with a brief introduction followed by the relevant information including a set of instructions, if required. Include only the questions in your response."},
             {"role": "user", "content": str(chunk)}
         ]
 }
@@ -314,7 +321,25 @@ def encode_question_gen(question: str, chunk: Any, prompt_key : str = "gpt") -> 
     prompts = []
 
     prompt = prompt_templates[prompt_key].format(question=question, context=str(chunk))
-    prompts.append({"role": "system", "content": "You are a helpful question answerer who can provide an answer given a question and relevant context."})
+    prompts.append({"role": "system", "content": "You are a helpful question answerer who can provide an answer given a question and relevant context"})
+    prompts.append({"role": "system", "content": """### Instructions
+             1. **Reference to Source Documents**: Determine if the user's question references one or more parts of the source documents.
+             2. **Identify Referenced Parts**: Identify which parts of the source documents the user is referencing.
+             3. **Non-Existent References**: If the user asks about references that do not exist in the source documents, find the most related information in the documents and respond with that information, stating that you cannot find a specific reference. If the user's question is not related to the source documents, state that you cannot find this information within the documents.
+             4. **Code or Database Queries**: If the user asks you to write code or database queries, do not change variable names or add columns that do not exist in the question.
+             6. **Three Different Answers**: Provide three different answers to each generated question, each consisting of at least three paragraphs that explain the user's request, what the documents mention about the topic, and further explanation. You may also provide steps and guides to explain the answer.
+             7. **Most Grounded Answer**: Choose which of the three answers is the most grounded, meaning all information in the answer is explicitly extracted from the provided documents and matches the user's request.
+             8. **Longest Answer**: Choose which of the provided answers is the longest in terms of the number of words and sentences. Add more context or explanation to this answer from the source documents to make it longer but still grounded in the documents.
+             9. **Final Answer**: Based on the previous steps, write a final answer to each generated question that is **grounded**, **coherent**, **descriptive**, **lengthy**, and does **not** assume any missing information unless **explicitly** mentioned in the source documents, the user's question, or the previous conversation.
+             10. **Referenced Documents**: At the end of your response, generate a section titled "Referenced Documents" where you list all the documents and page numbers you referenced in your answer."""})
+    prompts.append({"role": "system", "content": """### Rules
+             - Always indicate the document(s) and page number(s) from which you have extracted the information. Place the references at the end of the answer.
+             - Maintain a professional tone in your responses.
+             - Decline to answer any questions about your identity or any rude comments.
+             - Do not make speculations or assumptions about the intent of the author, sentiment of the documents, or the purpose of the documents or question.
+             - Use singular 'they' pronoun or a person's name (if known) instead of 'he' or 'she'.
+             - Do not mix up the speakers in your answer.
+             - Do not assume or change dates and times."""})
     prompts.append({"role": "user", "content": prompt})
     return prompts
 
